@@ -1,0 +1,7 @@
+fastapi
+openai
+cryptography
+pydantic
+requests
+pillow
+uvicorn

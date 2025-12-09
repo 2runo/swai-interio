@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>interio | 인테리어 고민, 이제 AI로.</title>
+  <meta name="description" content="사진을 업로드하고 스타일과 예산을 입력하면 가능한 인테리어 이미지를 바로 확인하세요." />
+  <meta property="og:title" content="인테리오" />
+  <meta property="og:description" content="사진을 업로드하고 스타일과 예산을 입력하면 가능한 인테리어 이미지를 바로 확인하세요." />
+  <meta name="color-scheme" content="light" />
+  <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    /* =========================
+       Design Tokens
+    ========================= */
+    :root {
+      --primary: #3182F6;
+      --accent: #2563EB;
+      --bg: #FFFFFF;
+      --text: #0B1220;
+      --muted: #6B7280;
+      --surface: #F7F9FC;
+      --ring: rgba(49,130,246,0.35);
+      --shadow: 0 8px 30px rgba(11,18,32,0.08);
+      --radius: 16px;
+      --maxw: 1400px;
+    }
+
+    /* Base */
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", "Segoe UI", Roboto, Arial, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+    .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+
+    /* =========================
+       Header
+    ========================= */
+    header.site-header {
+      position: fixed; top: 0; z-index: 1000;
+      width: 100%;
+      backdrop-filter: saturate(140%) blur(10px);
+      -webkit-backdrop-filter: saturate(140%) blur(10px);
+      background: rgba(255,255,255,0.7);
+      transition: box-shadow .25s ease, padding .25s ease;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(11,18,32,0.05);
+    }
+    header.site-header.scrolled { box-shadow: 0 6px 20px rgba(11,18,32,0.08); padding: 10px 0; }
+
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { font-weight: 700; letter-spacing: -0.3px; font-size: 30px; color: var(--text); }
+    .nav-links { display: flex; gap: 22px; align-items: center; }
+    .nav-links a { color: var(--muted); font-weight: 600; font-size: 0.95rem; opacity: .95; }
+    .nav-links a:hover, .nav-links a:focus { color: var(--text); }
+
+    /* Mobile nav (simple wrap) */
+    @media (max-width: 640px) {
+      .nav-links { gap: 14px; font-size: 0.95rem; }
+      .brand { font-size: 1rem; }
+    }
+
+    /* =========================
+       Hero (Responsive 60/40 split)
+    ========================= */
+    #home {
+      display: grid;
+      align-items: stretch;
+    }
+    .hero {
+      position: relative;
+      min-height: 100svh; /* full viewport height, safe on mobile */
+      overflow: clip;
+      background: radial-gradient(80% 60% at 50% 0%, rgba(37,99,235,0.12), transparent 60%), var(--bg);
+      display: block;
+    }
+    .hero::before {
+      content: "";
+      position: absolute; inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1505692794403-34d4982fd1ac?q=80&w=2000&auto=format&fit=crop');
+      background-size: cover; background-position: center;
+      filter: saturate(110%) contrast(102%) brightness(100%);
+      transform: scale(1.02);
+      z-index: -2;
+    }
+    .hero::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(247,249,252,0.85) 40%, rgba(255,255,255,0.95));
+      mix-blend-mode: normal; z-index: -1;
+    }
+
+    /* grid container for hero */
+    .hero > .container {
+      display: grid;
+      gap: 24px;
+      align-items: center;
+      padding: 0 20px; /* remove large padding to let the section truly fill the screen */
+      min-height: 100%;
+      height: 100%;
+    }
+
+    /* 60% text / 40% image on desktop */
+    @media (min-width: 1024px) {
+      .hero > .container { grid-template-columns: 3fr 2fr; }
+      .hero-inner { text-align: left; padding: 120px 0 80px; }
+    }
+      .hero-inner { text-align: left; }
+    }
+
+    /* stack on tablet and mobile */
+    @media (max-width: 1023px) {
+      .hero > .container { grid-template-columns: 1fr; }
+      .hero-inner { text-align: center; padding: 96px 0 60px; }
+    }
+      .hero-inner { text-align: center; }
+    }
+
+    .hero-inner {}
+    .title {
+      font-weight: 800; letter-spacing: -0.6px; line-height: 1.2;
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      color: var(--text);
+    }
+    .subtitle {
+      margin-top: 14px; color: var(--muted);
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
+    }
+
+    .cta { margin-top: 28px; display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .btn {
+      appearance: none; border: 0; cursor: pointer; user-select: none;
+      padding: 14px 20px; border-radius: 12px; font-weight: 700; font-size: 1rem;
+      transition: transform .15s ease, box-shadow .15s ease, background-color .2s ease;
+      will-change: transform;
+    }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 24px rgba(49,130,246,0.35);}    
+    .btn-large { padding: 20px 40px; font-size: 25px; margin-top: 20px;}
+    .btn-primary:hover { transform: scale(1.02); background: var(--accent); box-shadow: 0 10px 26px rgba(37,99,235,0.35); }
+    .btn-outline { background: transparent; border: 1px solid rgba(11,18,32,0.12); color: var(--text); }
+    .btn-outline:hover { transform: scale(1.02); box-shadow: 0 8px 22px rgba(11,18,32,0.06); }
+
+    .chevron {
+      width: 26px; height: 26px; display: inline-block; font-size: 0;
+      border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+      transform: rotate(45deg);
+      animation: float 2s ease-in-out infinite;
+      opacity: .7;
+    }
+    @keyframes float { 0%,100%{ transform: translateY(0) rotate(45deg);} 50%{ transform: translateY(6px) rotate(45deg);} } 50%{ transform: translateY(6px) rotate(45deg);} }
+
+    .hero-image { width: 100%; display: flex; align-items: center; justify-content: center; min-height: 60vh; }
+    .hero-image img { width: 100%; height: min(72vh, 100%); object-fit: cover; }
+    @media (prefers-reduced-motion: reduce) { .chevron { animation: none; } }
+
+    /* =========================
+       Sections
+    ========================= */
+    section { scroll-margin-top: 90px; }
+    .section { padding: 96px 0; background: var(--bg); }
+    .section.alt { background: var(--surface); }
+    .section h2, .section h1 { font-size: clamp(1.5rem, 2.4vw, 2rem); letter-spacing: -0.3px; margin: 0 0 16px; }
+    .section p.lead { color: var(--muted); margin: 0 0 24px; }
+
+    /* Problem */
+    .problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 24px; }
+    .card {
+      background: #fff; border: 1px solid rgba(11,18,32,0.06); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow);
+    }
+    .icon-circle { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: rgba(49,130,246,0.12); color: var(--accent); font-weight: 900; }
+    .card h3 { margin: 14px 0 8px; font-size: 1.05rem; }
+    .card p { margin: 0; color: var(--muted); }
+
+    /* How It Works */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 32px; }
+    .step { text-align: center; padding: 24px; background: #fff; border: 1px solid rgba(11,18,32,0.06); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .step-icon { width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 12px; background: linear-gradient(135deg, rgba(49,130,246,0.12), rgba(37,99,235,0.12)); display: grid; place-items: center; color: var(--accent); font-weight: 900; }
+
+    /* Demo */
+    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 24px; }
+    .demo-card { position: relative; overflow: hidden; border-radius: var(--radius); background: #fff; border: 1px solid rgba(11,18,32,0.06); box-shadow: var(--shadow); }
+    .demo-card img { aspect-ratio: 16/10; width: 100%; object-fit: cover; }
+    .ribbon { position: absolute; top: 14px; right: -50px; transform: rotate(35deg); background: var(--accent); color: #fff; font-weight: 800; padding: 6px 80px; box-shadow: 0 10px 20px rgba(37,99,235,0.4); font-size: 0.8rem; letter-spacing: .5px; }
+    .card-title { padding: 14px 18px; font-weight: 700; border-top: 1px solid rgba(11,18,32,0.06); }
+
+    table.product-table { width: 100%; border-collapse: collapse; margin-top: 16px; background: #fff; border: 1px solid rgba(11,18,32,0.06); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+    table.product-table th, table.product-table td { padding: 14px; text-align: left; font-size: 0.95rem; }
+    table.product-table thead th { background: var(--surface); color: var(--muted); }
+    table.product-table tbody tr + tr td { border-top: 1px solid rgba(11,18,32,0.06); }
+
+    .toggle-wrap { margin-top: 16px; display: flex; justify-content: center; }
+
+    /* Trust Strip */
+    .trust { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .badge { font-size: 0.85rem; font-weight: 700; padding: 8px 12px; background: #fff; color: var(--text); border: 1px solid rgba(11,18,32,0.08); border-radius: 999px; box-shadow: var(--shadow); }
+    .disclaimer { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(11,18,32,0.45); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 2000; }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      width: 100%; max-width: 520px; border-radius: 18px; background: rgba(255,255,255,0.75);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(11,18,32,0.08); box-shadow: 0 30px 80px rgba(11,18,32,0.25);
+      padding: 22px; color: var(--text);
+    }
+    .modal h3 { margin: 6px 0 6px; font-size: 1.4rem; }
+    .modal p { margin: 0 0 16px; color: var(--muted); }
+    .form { display: grid; gap: 12px; }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 0.9rem; color: var(--muted); }
+    .input { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(11,18,32,0.15); background: #fff; font-size: 1rem; }
+    .input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--ring); }
+    .error { color: #dc2626; font-size: 0.9rem; min-height: 20px; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+
+    .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); border-top-color: #fff; animation: spin .8s linear infinite; display: none; }
+    .loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .success { text-align: center; padding: 14px 10px 4px; }
+
+    /* Reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* Footer */
+    footer { padding: 40px 0; color: var(--muted); border-top: 1px solid rgba(11,18,32,0.06); background: #fff; }
+    footer .links { display: flex; gap: 16px; flex-wrap: wrap; }
+    footer a { color: var(--muted); text-decoration: underline; }
+
+    /* Responsive tweaks */
+    @media (max-width: 1024px) {
+      .problem-grid, .steps, .demo-grid { grid-template-columns: 1fr 1fr; }
+      .cta { justify-content: center; }
+      #home > .container {
+        margin-top: 200px;
+      }
+      #demo-img {
+        transform: scale(0.8);
+      }
+    }
+    @media (max-width: 768px) {
+      .problem-grid, .steps, .demo-grid { grid-template-columns: 1fr; }
+      .hero > .container { padding: 96px 20px 60px; }
+      #home > .container {
+        margin-top: 100px;
+      }
+    }
+
+    /* Chevron absolute center bottom of hero */
+    .chevron-link { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: inline-block; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+    }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">본문 바로가기</a>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container nav" aria-label="주요 메뉴">
+      <div class="brand">interio.</div>
+      <nav class="nav-links" aria-label="섹션 이동">
+        <a href="#problem">문제</a>
+        <a href="#how">작동 방식</a>
+        <a href="#demo">예시</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home" aria-label="소개">
+    <div class="container">
+      <div class="hero-inner">
+        <h1 class="title">인테리어 고민, 이제 AI로.</h1>
+        <p class="subtitle">AI와 대화하듯 인테리어를 계획하고, 예상 결과를 바로 눈으로 확인하세요.</p>
+        <div class="cta">
+          <button class="btn btn-primary btn-large" id="open-modal" aria-haspopup="dialog">시작하기</button>
+        </div>
+        <a href="#problem" class="chevron-link" aria-label="아래로 스크롤"><span class="chevron" aria-hidden="true"></span></a>
+      </div>
+      <div class="hero-image" aria-hidden="true">
+        <img id="demo-img" src="demo.svg" alt="제품 데모 이미지" />
+      </div>
+    </div>
+  </section>
+
+  <main id="main">
+    <!-- Problem Section -->
+    <section class="section" id="problem">
+      <div class="container reveal">
+        <h1>어려운 인테리어, 이제 해결.</h1>
+        <p class="lead">예산과 스타일 사이에서 타협하기 쉽지 않아요. 복잡한 선택지는 시간을 잡아먹고, 결과를 미리 예측하기도 어려워요. 저희는 이 과정을 단순하게 만들고 있어요.</p>
+        <div class="problem-grid">
+          <div class="card" role="article">
+            <div class="icon-circle" aria-hidden="true">₩</div>
+            <h3>예산에 맞는 결과를 예측하기 어려워요</h3>
+            <p>가격 대비 가능한 모습을 바로 확인하기 어려워요.</p>
+          </div>
+          <div class="card" role="article">
+            <div class="icon-circle" aria-hidden="true">⏱</div>
+            <h3>선택지는 많고 시간은 부족해요</h3>
+            <p>끝없는 리서치 없이 핵심만 빠르게 보고 싶어요.</p>
+          </div>
+          <div class="card" role="article">
+            <div class="icon-circle" aria-hidden="true">💳</div>
+            <h3>과소비가 두려워요</h3>
+            <p>필요한 것만 담은 합리적인 목록이 필요해요.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section alt" id="how">
+      <div class="container reveal">
+        <h1>세 단계로 끝.</h1>
+        <div class="steps" role="list">
+          <div class="step" role="listitem">
+            <div class="step-icon" aria-hidden="true">1</div>
+            <div class="step-title">예산과 스타일 등 고민 내용을 물어봐요.</div>
+          </div>
+          <div class="step" role="listitem">
+            <div class="step-icon" aria-hidden="true">2</div>
+            <div class="step-title">인테리어 대상 장소 사진을 올려주세요.</div>
+          </div>
+          <div class="step" role="listitem">
+            <div class="step-icon" aria-hidden="true">3</div>
+            <div class="step-title">AI가 예상 인테리어 결과와 제품 리스트를 추천해드려요.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="section" id="demo">
+      <div class="container reveal">
+        <h1>눈으로 확인.</h1>
+        <p class="lead">Before / After 예시와 추천 제품 리스트입니다.</p>
+
+        <div class="demo-grid" aria-live="polite">
+          <article class="demo-card" aria-label="Before (전)">
+            <img src="before.png" alt="가구가 적은 기본 거실 전 상태" loading="lazy" />
+          </article>
+          <article class="demo-card" aria-label="After (DEMO)">
+            <img src="after.png" alt="스타일이 적용된 거실 데모 이미지" loading="lazy" />
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+  <!-- Footer -->
+  <footer>
+    <div class="container" role="contentinfo">
+      <div class="links">
+        <a href="#" aria-label="개인정보처리방침">개인정보처리방침</a>
+        <a href="mailto:hello@example.com" aria-label="문의하기 이메일">문의하기</a>
+      </div>
+      <div style="margin-top:8px">© <span id="year"></span> interio.</div>
+    </div>
+  </footer>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <button id="close-modal" class="btn btn-outline" style="float:right; padding:8px 10px; font-size:.9rem">닫기</button>
+      <h3 id="modalTitle">출시 D-1 🎉</h3>
+      <p id="modalDesc">연락처를 남기시면 출시 시 안내해드릴게요.</p>
+
+      <div id="notify-form" class="form" novalidate>
+        <div class="field">
+          <input id="email" name="email" type="email" inputmode="email" class="input" placeholder="이메일 주소 입력" autocomplete="email" />
+        </div>
+        <div class="actions">
+          <button id="submit-btn" class="btn btn-primary">
+            <span>사전예약</span>
+          </button>
+          <span class="spinner" id="spinner" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <div id="success" class="success" hidden>
+        <p style="font-size:1.05rem; margin-bottom:14px;">감사합니다 🎉 출시 시 연락드리겠습니다.</p>
+        <button class="btn btn-primary" id="success-close">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Header shrink on scroll
+    const header = document.querySelector('.site-header');
+    const onScroll = () => { header.classList.toggle('scrolled', window.scrollY > 8); };
+    window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); observer.unobserve(e.target); }});
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Smooth internal nav focus fix
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href');
+        if (id.length > 1) {
+          const target = document.querySelector(id);
+          if (target) { target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); setTimeout(() => target.removeAttribute('tabindex'), 1000); }
+        }
+      });
+    });
+
+    // Demo toggle (guard for missing nodes)
+    const toggleBtn = document.getElementById('toggle-demos');
+    const moreDemos = document.getElementById('more-demos');
+    if (toggleBtn && moreDemos) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = moreDemos.hasAttribute('hidden');
+        if (isHidden) { moreDemos.removeAttribute('hidden'); toggleBtn.setAttribute('aria-expanded', 'true'); toggleBtn.textContent = '닫기'; }
+        else { moreDemos.setAttribute('hidden', ''); toggleBtn.setAttribute('aria-expanded', 'false'); toggleBtn.textContent = '다른 샘플 보기'; }
+      });
+    }
+
+    // Modal logic with focus trap
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const openModalBtn = document.getElementById('open-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const successClose = document.getElementById('success-close');
+    const form = document.getElementById('notify-form');
+    const errorEl = document.getElementById('form-error');
+    const spinner = document.getElementById('spinner');
+    const submitBtn = document.getElementById('submit-btn');
+    const successBox = document.getElementById('success');
+
+    let lastFocused = null;
+
+    const openModal = () => {
+      window.location.href = '/chat';
+    };
+    const closeModal = () => {
+      modalBackdrop.classList.remove('active');
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      successBox.hidden = true; form.hidden = false;
+      submitBtn.disabled = false; spinner.style.display = 'none'; submitBtn.classList.remove('loading');
+      if (lastFocused) lastFocused.focus();
+      releaseTrap();
+    };
+
+    openModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBackdrop.classList.contains('active')) closeModal(); });
+
+    // Focus trap
+    let trapHandler = null;
+    function trapFocus(container) {
+      const selectors = 'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])';
+      const focusables = Array.from(container.querySelectorAll(selectors)).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      trapHandler = function(e) {
+        if (e.key !== 'Tab') return;
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      };
+      document.addEventListener('keydown', trapHandler);
+    }
+    function releaseTrap() { if (trapHandler) { document.removeEventListener('keydown', trapHandler); trapHandler = null; } }
+
+    // // Form submission
+    // form.addEventListener('submit', async (e) => {
+    //   e.preventDefault();
+    //   errorEl.textContent = '';
+    //   const email = form.email.value.trim();
+    //   const tel = form.tel.value.trim();
+    //   if (!email && !tel) {
+    //     errorEl.textContent = '이메일 또는 전화번호 중 하나는 필수입니다.';
+    //     return;
+    //   }
+    //   submitBtn.disabled = true; submitBtn.classList.add('loading'); spinner.style.display = 'inline-block';
+    //   await new Promise(r => setTimeout(r, 500)); // fake loading
+    //   spinner.style.display = 'none';
+    //   form.hidden = true;
+    //   successBox.hidden = false;
+    //   successClose.focus();
+    // });
+
+    successClose.addEventListener('click', closeModal);
+
+    addrScript = 'https://script.google.com/macros/s/AKfycbyFpgwv0T7sMC4VxQliAYr17EosQDbfrXzqQ5RU4SSylTxKzOt9NtilEexTk4jjOeRFbA/exec';
+    // 쿠키에서 값을 가져오는 함수
+    function getCookieValue(name) {
+      const value = "; " + document.cookie;
+      const parts = value.split("; " + name + "=");
+      if (parts.length === 2) {
+        return parts.pop().split(";").shift();
+      }
+    }
+
+    // 쿠키에 값을 저장하는 함수
+    function setCookieValue(name, value, days) {
+      let expires = "";
+      if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function getUVfromCookie() {
+      // 6자리 임의의 문자열 생성
+      const hash = Math.random().toString(36).substring(2, 8).toUpperCase();
+      // 쿠키에서 기존 해시 값을 가져옴
+      const existingHash = getCookieValue("user");
+      // 기존 해시 값이 없으면, 새로운 해시 값을 쿠키에 저장
+      if (!existingHash) {
+        setCookieValue("user", hash, 180); // 쿠키 만료일은 6개월 
+        return hash;
+      } else {
+        // 기존 해시 값이 있으면, 기존 값을 반환
+        return existingHash;
+      }
+    }
+
+    /* 수정 payload data -> id:getUVfromCookie() */
+    /* data를 만들 땐 모든 field가 들어 있어야 함 */
+    // IP 주소를 가져와서 데이터를 생성하고 전송
+    var data = null;
+    fetch('https://api.ipify.org?format=json')
+      .then(response => response.json())
+      .then(ipData => {
+        var data = JSON.stringify({
+          "id": getUVfromCookie(),
+          "landingUrl": window.location.href, 
+          "ip": ipData.ip, 
+          "referer": document.referrer || "direct",
+          "time_stamp": new Date().toISOString().slice(0, 19).replace('T', ' '), 
+          "utm": new URLSearchParams(window.location.search).get('utm_source') || "none",
+          "device": /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop"
+        });
+
+        axios.get(addrScript+'?action=insert&table=visitors&data='+data)
+        .then(response => {
+            console.log(JSON.stringify(response));
+          })
+          .catch(error => {
+            if (error.response) {
+              // 서버가 2xx 범위를 벗어난 상태 코드로 응답한 경우
+              console.log(error.response.data);
+              console.log(error.response.status);
+              console.log(error.response.headers);
+            } else if (error.request) {
+              // 요청이 전송되었지만 응답을 받지 못한 경우
+              console.log(error.request);
+            } else {
+              // 요청 설정 중에 오류가 발생한 경우
+              console.log('Error', error.message);
+            }
+            console.log(error.config);
+          });
+          $("#submit-btn").on("click", function () {
+            console.log("submit");
+        const email = $("#email").val();
+
+        function validateEmail(email) {
+          var re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+          return re.test(email);
+        }
+
+        if (email == '' || !validateEmail(email)) {
+          alert("이메일이 유효하지 않아 알림을 드릴 수가 없습니다. ");
+          return;
+        }
+
+        var finalData = JSON.stringify({
+          "id": getUVfromCookie(),
+          "email": email,
+        })
+
+        axios.get(addrScript + '?action=insert&table=tab_final&data=' + finalData)
+          .then(response => {
+          console.log(response.data.data);
+          $('#email').val('');
+          })
+        });
+      })
+
+
+
+    
+  </script>
+</body>
+</html>

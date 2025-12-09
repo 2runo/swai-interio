@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>interio | AI 인테리어 상담</title>
+    <meta
+      name="description"
+      content="interio AI 챗과 대화하며 맞춤형 인테리어 아이디어와 제품 추천을 받아보세요."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="logo" aria-label="interio">interio.</div>
+          <p class="tagline">AI 인테리어 비서</p>
+        </div>
+        <div class="session-copy">
+          <p>공간의 용도, 예산, 선호 스타일을 편하게 입력하면 interio가 바로 제안해드려요.</p>
+        </div>
+        <div class="header-actions">
+          <a class="ghost-link" href="../index.html">랜딩으로 돌아가기</a>
+        </div>
+      </header>
+
+      <main class="chat-area" aria-label="대화 내용">
+        <div class="chat-scroll" id="chatScroll">
+          <div class="message-list" id="messageList" role="log" aria-live="polite"></div>
+        </div>
+      </main>
+
+      <section class="composer" aria-label="채팅 입력 영역">
+        <div class="preview-bar" id="imagePreview" hidden>
+          <div class="preview-thumb">
+            <img src="" alt="선택한 이미지 미리보기" id="previewImage" />
+          </div>
+          <div class="preview-meta">
+            <p id="previewName"></p>
+            <button type="button" id="removeImage" class="remove-btn">삭제</button>
+          </div>
+        </div>
+        <form id="chatForm" class="composer-form" autocomplete="off">
+          <label class="icon-button" for="imageInput">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path
+                  d="M4 17.5 9 12l4.5 4.5 3.5-3.5L20 16M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span class="label">이미지 첨부</span>
+          </label>
+          <input type="file" id="imageInput" accept="image/*" hidden />
+
+          <div class="textarea-wrapper">
+            <textarea
+              id="messageInput"
+              rows="1"
+              maxlength="800"
+              placeholder="예) 500만원으로 32평 거실을 모던&우드 무드로 꾸리려면 어떤 조합이 좋을까?"
+              aria-label="메시지 입력"
+              required
+            ></textarea>
+          </div>
+          <button type="submit" class="send-button" aria-label="보내기">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                <path
+                  d="M4 12h7"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M5 5 19 12l-14 7 4-7-4-7Z"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <span class="sr-only">보내기</span>
+          </button>
+        </form>
+        <p class="composer-hint">이미지를 첨부하면 공간을 더 정확하게 이해할 수 있어요.</p>
+      </section>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

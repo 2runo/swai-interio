@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+frontend_fake/
+frontend_fake2/
+.DS_store
